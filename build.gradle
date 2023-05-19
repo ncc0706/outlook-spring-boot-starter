@@ -2,6 +2,9 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '2.7.12'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+
+    id 'signing'
+    id 'maven-publish'
 }
 
 group = 'io.github.ncc0706'
@@ -18,6 +21,108 @@ dependencies {
 
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+task sourceJar(type: Jar) {
+    classifier "sources"
+    from sourceSets.main.allJava
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier "javadoc"
+    from javadoc.destinationDir
+}
+
+javadoc {
+    description = "生成jar格式的javadoc。"
+    // 只显示 protected 和 public 的类和成员
+    options.memberLevel = org.gradle.external.javadoc.JavadocMemberLevel.PROTECTED
+    options.author = true
+    options.version = true
+    options.header = project.name
+    // 静默javadoc检查（比如不支持@date会报错等），jdk 8+
+    options.addStringOption('Xdoclint:none', '-quiet')
+    // 防止本地打开中文乱码
+    options.addStringOption("charset", "UTF-8")
+    // suppress warnings due to cross-module @see and @link references;
+    // note that global 'api' task does display all warnings.
+    logging.captureStandardError LogLevel.INFO
+    // suppress "## warnings" message
+    logging.captureStandardOutput LogLevel.INFO
+    // 编码一定要配置否则直接出错
+    options.encoding = "UTF-8"
+    options.charSet = "UTF-8"
+}
+
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+
+            from components.java
+            artifact sourceJar
+            artifact javadocJar
+
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+
+            pom {
+                name = "outlook-spring-boot-starter"
+                description = "Outlook spring boot starter"
+                url = "https://github.com/ncc0706/outlook-spring-boot-starter"
+                licenses {
+                    license {
+                        name = "The MIT License"
+                        url = "https://github.com/ncc0706/outlook-spring-boot-starter/blob/master/LICENSE"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "ncc0706"
+                        name = "ncc0706"
+                        email = "ncc0706@gmail.com"
+                    }
+                }
+                scm {
+                    connection = "scm:git:https://github.com/ncc0706/outlook-spring-boot-starter.git"
+                    developerConnection = "scm:git:https://github.com/ncc0706/outlook-spring-boot-starter.git"
+                    url = "https://github.com/ncc0706/outlook-spring-boot-starter"
+                }
+            }
+        }
+    }
+
+
+    repositories {
+        // releases 仓库
+        maven {
+            name 'releases'
+            url 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username = "${NEXUS_USERNAME}"
+                password = "${NEXUS_PASSWORD}"
+            }
+        }
+        // snapshots 仓库
+        maven {
+            name = 'snapshot'
+            url = 'https://oss.sonatype.org/content/repositories/snapshots/'
+            credentials {
+                username = "${NEXUS_USERNAME}"
+                password = "${NEXUS_PASSWORD}"
+            }
+        }
+    }
+}
+
+signing {
+    sign publishing.publications.mavenJava
 }
 
 tasks.named('test') {
