@@ -1,5 +1,5 @@
 plugins {
-    id 'java'
+    id 'java-library'
     id 'org.springframework.boot' version '2.7.12'
     id 'io.spring.dependency-management' version '1.0.15.RELEASE'
 
@@ -8,11 +8,22 @@ plugins {
 }
 
 group = 'io.github.ncc0706'
-version = '0.0.1'
+version = '0.0.2'
 sourceCompatibility = '11'
 
 repositories {
     mavenCentral()
+}
+
+jar{
+    enabled = true
+    // 默认会带有 -plain
+    // xxx-plain.jar
+    archiveClassifier = ''
+}
+
+bootJar{
+    enabled = false
 }
 
 dependencies {
